@@ -1,107 +1,167 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Song Player</title>
-</head>
-<body>
-    <h1>WebSocket Song Player</h1>
-    <ul id="songList"></ul>
-    <audio id="audioPlayer" controls></audio>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>WebSocket Song Player</title>
+    </head>
+    <body>
+        <h1>WebSocket Song Player</h1>
+        <ul id="songList"></ul>
+        <audio id="audioPlayer" controls></audio>
+        <ul id="clientCounter">Client Counter: </ul>
+        <div id="connectedClients"></div>
 
-    <script>
-        const socket = new WebSocket('ws://192.168.1.9:443'); // Update with your server's address
+        <script>
+            const socket = new WebSocket('ws://172.16.18.198:443'); // Update with your server's address
+            var remotePlay = false;
+            var remotePlayIP = '';
 
-        socket.addEventListener('open', (event) => {
-            console.log('WebSocket connection opened');
-        });
-
-        socket.addEventListener('message', (event) => {
-            const data = JSON.parse(event.data);
-
-            if (data.type === 'songList') {
-                displaySongList(data.data);
-            }
-            if (data.type == 'selectedSong'){
-                playSongFromServer(data);
-            }
-        });
-
-        socket.addEventListener('close', (event) => {
-            console.log('WebSocket connection closed');
-        });
-
-        function displaySongList(songList) {
-            const songListContainer = document.getElementById('songList');
-
-            songList.forEach((song) => {
-                const listItem = document.createElement('li');
-                listItem.textContent = song;
-                listItem.onclick = () => {
-                    sendPlaySongMessage(song);
-                };
-                songListContainer.appendChild(listItem);
+            socket.addEventListener('open', (event) => {
+                console.log('WebSocket connection opened');
             });
-        }
 
-        function playSongFromServer(song) {
-            // const byteCharacters = atob(song.audioData);
-            // const byteNumbers = new Array(byteCharacters.length);
-            // for (let i = 0; i < byteCharacters.length; i++) {
-            //     byteNumbers[i] = byteCharacters.charCodeAt(i);
-            // }
+            socket.addEventListener('message', (event) => {
+                const data = JSON.parse(event.data);
 
-            // const byteArray = new Uint8Array(byteNumbers);
-            // const blob = new Blob([byteArray], { type: 'audio/mp3' }); // Adjust the type accordingly
-            console.log(song.audioData)
-            const audioUrl = atob(song.audioData)
-            console.log(audioUrl)
-            
-            console.log(`Song ${song.selectedSong} not found in local cache. Downloading...`);
-            localStorage.setItem(song.selectedSong, audioUrl);
-            console.log(audioUrl)
-            console.log('Playing song:', song.selectedSong);
-            const audioPlayer = document.getElementById('audioPlayer');
-            // const audioData = audioUrl; // Assuming audioData is a base64-encoded audio file
-            audioPlayer.src = audioUrl;
-            // audioPlayer.src = `data:audio/mp3;base64,${audioData}`;
-            audioPlayer.play();
-        }
+                if (data.type === 'songList') {
+                    displaySongList(data.data);
+                }
+                else if (data.type === 'selectedSong'){
+                    playSongFromServer(data);
+                }
+                else if (data.type === 'clients'){
+                    updateClients(data.clients);
+                }
+                else if (data.type === 'askConnectionRemoteClient'){
+                    // Assuming "data" contains information about the remote connection request
+                    const confirmMessage = `Do you want to accept a remote connection from ${data.sender}?`;
 
-        function playSongFromCache(audioUrl, song) {
-            console.log(`Playing song ${song} from local cache.`);
-            const audioPlayer = document.getElementById('audioPlayer');
-            // const audioData = audioUrl; // Assuming audioData is a base64-encoded audio file
+                    // Show a confirmation dialog
+                    const userResponse = window.confirm(confirmMessage);
+                    const message = JSON.stringify({ type: 'responseConnectionRemoteClient', response: userResponse , sender: data.sender});
+                    socket.send(message);
+                }
+                else if (data.type === 'responseConnectionRemoteClient'){
+                    if(data.response === true){
+                        remotePlay = true;
+                        remotePlayIP = data.remote;
+                        const clienteRemotoConectado = document.getElementById('connectedClients')
+                        const p = document.createElement('p');
+                        p.innerText = remotePlayIP.slice(7)
+                        const cancelar = document.createElement('button')
+                        cancelar.innerText = 'Cancelar'
+                        cancelar.onclick = () => {
+                            remotePlay = false;
+                            remotePlayIP = '';
+                            clienteRemotoConectado.innerHTML = '';
+                        }
+                        clienteRemotoConectado.appendChild(p);
+                        clienteRemotoConectado.appendChild(cancelar);
+                    }
+                    else{
+                        console.log('recusou lá paizão');
+                    }
+                }
+                else if(data.type === 'playRemoteClient'){
+                    const message = JSON.stringify({ type: 'playSong', data: data.song });
+                    socket.send(message);
+                }
+            });
 
-            // Create a Blob from the data
-            var fileReader = new FileReader();
-            fileReader.onload = function (event) {
-                // event.target.result contains the binary data as a base64-encoded string
-                console.log("Audio data as base64:", event.target.result);
-                audioPlayer.src = event.target.result;
-            };
-            // Read the Blob
-            fileReader.readAsDataURL(new Blob([audioUrl], { type: 'audio/mp3' }));
-            // Create a new Blob URL
-            
-
-            // audioPlayer.src = audioBlobUrl;
-            audioPlayer.play();
-        }
-
-        function sendPlaySongMessage(song) {
-            console.log(song)
-            const audioUrl = localStorage.getItem(song);
-            console.log(audioUrl);
-            if(audioUrl){
-                playSongFromCache(audioUrl, song);
+            socket.addEventListener('close', (event) => {
+                console.log('WebSocket connection closed');
+            });
+            function updateClients (clients) {
+                const clientsContainer = document.getElementById('clientCounter');
+                clientsContainer.innerHTML = '';
+                for(let i = 0; i < clients.length; i++){
+                    const listItem = document.createElement('li');
+                    listItem.textContent = clients[i].id.slice(7);
+                    listItem.onclick = () => {
+                        askConnectionRemoteClient(clients[i].id);
+                    };
+                    clientsContainer.appendChild(listItem);
+                }
             }
-            else{
-                const message = JSON.stringify({ type: 'playSong', data: song });
+
+            function displaySongList(songList) {
+                const songListContainer = document.getElementById('songList');
+
+                songList.forEach((song) => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = song;
+                    listItem.onclick = () => {
+                        sendPlaySongMessage(song);
+                    };
+                    songListContainer.appendChild(listItem);
+                });
+            }
+
+            function askConnectionRemoteClient (id) {
+                const message = JSON.stringify({ type: 'askConnectionRemoteClient', id: id });
                 socket.send(message);
-            } 
-        }
-    </script>
-</body>
-</html>
+            }
+
+            function playRemoteClient(song){
+                const message = JSON.stringify({ type: 'playRemoteClient', data: song, remote: remotePlayIP });
+                socket.send(message);
+            }
+
+            function sendPlaySongMessage(song) {
+                if(remotePlay === false){
+                    const audioUrl = localStorage.getItem(song);
+                    if(audioUrl){
+                        playSongFromCache(audioUrl, song);
+                    }
+                    else{
+                        const message = JSON.stringify({ type: 'playSong', data: song });
+                        socket.send(message);
+                    } 
+                }
+                else{
+                    playRemoteClient(song);
+                }
+            }
+
+            function playSongFromServer(song) {
+                const byteCharacters = atob(song.audioData);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+
+                const byteArray = new Uint8Array(byteNumbers);
+
+                const blob = new Blob([byteArray], { type: 'audio/mp3' }); // Adjust the type accordingly
+
+                var audioUrl = URL.createObjectURL(blob);
+                
+                console.log(`Song ${song.selectedSong} not found in local cache. Downloading...`);
+                localStorage.setItem(song.selectedSong, audioUrl);
+                
+                console.log('Playing song:', song.selectedSong);
+                const audioPlayer = document.getElementById('audioPlayer');
+                // const audioData = audioUrl; // Assuming audioData is a base64-encoded audio file
+                audioPlayer.src = audioUrl;
+                // audioPlayer.src = `data:audio/mp3;base64,${audioData}`;
+                audioPlayer.play();
+            }
+
+            function playSongFromCache(audioUrl, song) {
+                    console.log(`Playing song ${song} from local cache.`);
+                    const audioPlayer = document.getElementById('audioPlayer');
+
+                    audioPlayer.src = audioUrl;
+                    audioPlayer.play()
+                    .catch((error) => {
+                        console.log('Não foi possível tocar pelo cache', error);
+                        const message = JSON.stringify({ type: 'playSong', data: song });
+                        socket.send(message);
+                        playSongFromServer();
+                    });              
+            }
+
+        </script>
+    </body>
+    </html>
