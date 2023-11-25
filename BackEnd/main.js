@@ -72,8 +72,7 @@ sockserver.on('connection', ws => {
     console.log('New client connected!');
     broadcastSongList(ws);
     
-    // Generate a unique identifier for the client
-    const clientId = ws._socket.remoteAddress; // You can use a better method for generating unique IDs
+    const clientId = ws._socket.remoteAddress;
     clients[clientId] = ws;
 
     sendClients();
@@ -86,7 +85,7 @@ sockserver.on('connection', ws => {
 
     ws.on('message', message => {
         const data = JSON.parse(message);
-        // Check if the received message is related to playing a song
+        
         if (data.type === 'playSong') {
             broadcastSelectedSong(data.data, ws);
         }
