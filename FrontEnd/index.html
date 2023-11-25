@@ -62,7 +62,7 @@
         <div id="connectedClients"></div>
 
         <script>
-            const socket = new WebSocket('ws://192.168.1.9:443'); // Update with your server's address
+            const socket = new WebSocket('ws://IP_DO_HOST:443'); // Update with your server's address
             var remotePlay = false;
             var remotePlayIP = '';
 
@@ -83,10 +83,10 @@
                     updateClients(data.clients);
                 }
                 else if (data.type === 'askConnectionRemoteClient'){
-                    // Assuming "data" contains information about the remote connection request
+                    
                     const confirmMessage = `Do you want to accept a remote connection from ${data.sender}?`;
 
-                    // Show a confirmation dialog
+                    
                     const userResponse = window.confirm(confirmMessage);
                     const message = JSON.stringify({ type: 'responseConnectionRemoteClient', response: userResponse , sender: data.sender});
                     socket.send(message);
@@ -182,7 +182,7 @@
 
                 const byteArray = new Uint8Array(byteNumbers);
 
-                const blob = new Blob([byteArray], { type: 'audio/mp3' }); // Adjust the type accordingly
+                const blob = new Blob([byteArray], { type: 'audio/mp3' });
 
                 var audioUrl = URL.createObjectURL(blob);
                 
@@ -191,9 +191,9 @@
                 
                 console.log('Playing song:', song.selectedSong);
                 const audioPlayer = document.getElementById('audioPlayer');
-                // const audioData = audioUrl; // Assuming audioData is a base64-encoded audio file
+                
                 audioPlayer.src = audioUrl;
-                // audioPlayer.src = `data:audio/mp3;base64,${audioData}`;
+                
                 audioPlayer.play();
             }
 
