@@ -3,17 +3,66 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>WebSocket Song Player</title>
+        <title>AudioStreaming</title>
+        <link rel="stylesheet" href="C:/Users/cbsantos/Desktop/TRABALHO/UNB/Redes/AudioStreaming_2023.2/FrontEnd/style.css">
+        <style>
+            *{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            .header{
+                text-align: center;
+                display: flex;
+                justify-content: center;
+                margin-top: 2em;
+                color: #4CAF50;
+                margin-bottom: 2em;
+            }
+
+            #songList {
+                list-style-type: none;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                gap: .5em;
+                text-align: center;
+            }
+
+            #songList li{
+                cursor: pointer;
+            }
+
+            #audioPlayer {
+                width: 100%;
+                margin-top: 20px;
+            }
+
+            #clientCounter {
+                font-weight: bold;
+                margin-top: 20px;
+                text-align: center;
+            }
+
+            #connectedClients {
+                margin-top: 10px;
+                color: #555;
+            }
+        </style>
     </head>
+
     <body>
-        <h1>WebSocket Song Player</h1>
+        <div class="header">
+            <h1>WebSocket AudioStreaming</h1>
+        </div>
         <ul id="songList"></ul>
         <audio id="audioPlayer" controls></audio>
-        <ul id="clientCounter">Client Counter: </ul>
+        <ul id="clientCounter">Clientes Conectados: </ul>
         <div id="connectedClients"></div>
 
         <script>
-            const socket = new WebSocket('ws://172.16.18.198:443'); // Update with your server's address
+            const socket = new WebSocket('ws://192.168.1.9:443'); // Update with your server's address
             var remotePlay = false;
             var remotePlayIP = '';
 
@@ -74,7 +123,7 @@
             });
             function updateClients (clients) {
                 const clientsContainer = document.getElementById('clientCounter');
-                clientsContainer.innerHTML = '';
+                clientsContainer.innerHTML = 'Clientes Conectados: ';
                 for(let i = 0; i < clients.length; i++){
                     const listItem = document.createElement('li');
                     listItem.textContent = clients[i].id.slice(7);
